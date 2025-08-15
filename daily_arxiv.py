@@ -1,4 +1,8 @@
+# -*- coding: utf-8 -*-
 import os
+import io
+import sys
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf8') 
 import re
 import json
 import arxiv
@@ -8,6 +12,15 @@ import argparse
 import datetime
 import requests
 import subprocess
+import certifi
+# r = requests.get(url, verify=certifi.where())
+proxies = {
+    "http": "http://127.0.0.1:7897",
+    "https": "http://127.0.0.1:7897"
+}
+# r = requests.get(url, proxies=proxies, verify=certifi.where())
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
 
 logging.basicConfig(format='[%(asctime)s %(levelname)s] %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -80,7 +93,7 @@ def get_code_link(qword:str) -> str:
         "sort": "stars",
         "order": "desc"
     }
-    r = requests.get(github_url, params=params)
+    r = requests.get(github_url,proxies=proxies, params=params)
     results = r.json()
     code_link = None
     if results["total_count"] > 0:
@@ -129,7 +142,7 @@ def get_daily_papers(topic,query="slam", max_results=2):
         
         try:
             # source code link    
-            r = requests.get(code_url).json()
+            r = requests.get(code_url,proxies=proxies).json()
             repo_url = None
             if "official" in r and r["official"]:
                 repo_url = r["official"]["url"]
@@ -203,7 +216,7 @@ def update_paper_links(filename):
                     continue
                 try:
                     code_url = base_url + paper_id #TODO
-                    r = requests.get(code_url).json()
+                    r = requests.get(code_url,proxies=proxies).json()
                     repo_url = None
                     if "official" in r and r["official"]:
                         repo_url = r["official"]["url"]
@@ -286,7 +299,7 @@ def json_to_md(filename,md_filename,
         pass
 
     # write data into README.md
-    with open(md_filename,"a+") as f:
+    with open(md_filename,encoding="utf-8",mode="a+") as f:
 
         if (use_title == True) and (to_web == True):
             f.write("---\n" + "layout: default\n" + "---\n\n")
@@ -340,6 +353,7 @@ def json_to_md(filename,md_filename,
         
             for _,v in day_content.items():
                 if v is not None:
+                    print(v)
                     f.write(pretty_math(v)) # make latex pretty
 
             f.write(f"\n")
